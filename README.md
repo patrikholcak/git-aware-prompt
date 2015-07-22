@@ -1,54 +1,59 @@
-# Git Aware Prompt
-
-Working with Git and its great branching/merging features is
-amazing. Constantly switching branches can be confusing though as you have to
-run `git status` to see which branch you're currently on.
-
-The solution to this is to have your terminal prompt display the current
-branch. There's a [number][1] [of][2] [articles][3] [available][4] online
-about how to achieve this. This project is an attempt to make an easy to
-install/configure solution.
-
-[1]: http://aaroncrane.co.uk/2009/03/git_branch_prompt/
-[2]: http://railstips.org/2009/2/2/bedazzle-your-bash-prompt-with-git-info
-[3]: http://techblog.floorplanner.com/2008/12/14/working-with-git-branches/
-[4]: http://www.intridea.com/2009/2/2/git-status-in-your-prompt
-
-
 ## Overview
 
-If you `cd` to a Git working directory, you will see the current Git branch
-name displayed in your terminal prompt. When you're not in a Git working
-directory, your prompt works like normal.
+If you `cd` to a Git working directory, you will see:
+- the current Git branch name
+- an information about how far ahead you are
+- a star (`*`) indicating whether there are any uncommited changes
 
-![Git Branch in Prompt](https://raw.github.com/jimeh/git-aware-prompt/master/preview.png)
+When you're not in a Git working directory, your prompt
+works like normal.
+
+![Git Branch in Prompt](https://raw.github.com/patrikholcak/git-aware-prompt/master/preview.png)
+
+
+## Before installation
+The performance of your prompt might (and most certainly will) be affected by this script. I did some tests and the script executes in under 30ms.
 
 
 ## Installation
 
-Clone the project to a `.bash` folder in your home directory:
-
-```bash
-mkdir ~/.bash
-cd ~/.bash
-git clone git://github.com/jimeh/git-aware-prompt.git
-```
-
 Edit your `~/.bash_profile` or `~/.profile` and add the following to the top:
 
 ```bash
-export GITAWAREPROMPT=~/.bash/git-aware-prompt
-source "${GITAWAREPROMPT}/main.sh"
+find_git_branch() {
+  local branch
+  if branch=$(git symbolic-ref --short HEAD 2> /dev/null); then
+
+    if [[ "$branch" == "HEAD" ]]; then
+      branch='detached*'
+    fi
+
+    local ahead=$(git rev-list @{u}.. --count 2> /dev/null)
+
+    if [[ "$ahead" > "0" ]]; then
+      branch="$branch[$ahead]"
+    fi
+
+    local status=$(git status --porcelain 2> /dev/null)
+
+    if [[ "$status" != "" ]]; then
+      branch="$branch*"
+    fi
+
+    git_branch="@$branch"
+  else
+    git_branch=""
+  fi
+}
+
+PROMPT_COMMAND="find_git_branch; $PROMPT_COMMAND"
 ```
 
 
 ## Configuring
 
-Once installed, there will be new `$git_branch` and `$git_dirty` variables
-available to use in the `PS1` environment variable, along with a number of
-color helper variables which you can see a list of in [colors.sh][].
-
-[colors.sh]: https://github.com/jimeh/git-aware-prompt/blob/master/colors.sh
+Once installed, there will be new `$git_branch` variable
+available to use in the `PS1` environment variable.
 
 If you want to know more about how to customize your prompt, I recommend
 this article: [How to: Change / Setup bash custom prompt (PS1)][how-to]
@@ -56,49 +61,16 @@ this article: [How to: Change / Setup bash custom prompt (PS1)][how-to]
 [how-to]: http://www.cyberciti.biz/tips/howto-linux-unix-bash-shell-setup-prompt.html
 
 
-### Suggested Prompts
+# Example prompts
 
-Below are a few suggested prompt configurations. Simply paste the code at the
-end of the same file you pasted the installation code into earlier.
-
-
-#### Mac OS X
-
+with colors:
 ```bash
-export PS1="\u@\h \w \[$txtcyn\]\$git_branch\[$txtred\]\$git_dirty\[$txtrst\]\$ "
+export PS1="\[\033[36m\]\u:\[\033[1;33m\]\W\[\033[0;36m\]\$git_branch\[\033[m\]\$ "
 ```
 
-Optionally, if you want a nice pretty prompt when using `sudo -s`, also add
-this line:
-
+plain:
 ```bash
-export SUDO_PS1="\[$bakred\]\u@\h\[$txtrst\] \w\$ "
-```
-
-
-#### Ubuntu
-
-Standard:
-
-```bash
-export PS1="\${debian_chroot:+(\$debian_chroot)}\u@\h:\w \[$txtcyn\]\$git_branch\[$txtred\]\$git_dirty\[$txtrst\]\$ "
-```
-
-Colorized:
-
-```bash
-export PS1="\${debian_chroot:+(\$debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] \[$txtcyn\]\$git_branch\[$txtred\]\$git_dirty\[$txtrst\]\$ "
-```
-
-
-## Updating
-
-Assuming you followed the default installation instructions and cloned this
-repo to `~/.bash/git-aware-prompt`:
-
-```bash
-cd ~/.bash/git-aware-prompt
-git pull
+export PS1="\u:\W\$git_branch\$ "
 ```
 
 
@@ -107,6 +79,11 @@ git pull
 To view other user's tips, please check the
 [Usage Tips](https://github.com/jimeh/git-aware-prompt/wiki/Usage-Tips) wiki
 page. Or if you have tips of your own, feel free to add them :)
+
+
+## Thanks
+
+This is a modified version of a script by [Jim Myhrberg](https://github.com/jimeh/git-aware-prompt).
 
 
 ## License
